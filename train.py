@@ -44,6 +44,40 @@ for i in imagePaths:
 	# update the data and labels lists, respectively
 	data.append(image)
 	#don't think we need: labels.append(label)
+
+#gotta check the one-hot encoding stuff
+
 data = np.array(data)
 (train_x, test_x, train_y, test_y) = train_test_split(data, test_size=0.20, random_state=42)
+
+#train data object initialization
+trainAug = ImageDataGenerator(rotation_range=30, zoom_range=0.15, width_shift_range=0.2, height_shift_range=0.2, shear_range=0.15, horizontal_flip=True, fill_mode="nearest")
+valAug = ImageDataGenerator()
+# define the ImageNet mean subtraction (in RGB order). Set the mean construction value
+mean = np.array([123.68, 116.779, 103.939], dtype="float32") #numbers are from ImageNet
+trainAug.mean = mean # for mean subtraction 
+valAug.mean = mean 
+
+
+# load the ResNet-50 network, ensuring the head FC layer sets are left off 
+baseModel = ResNet50(weights="imagenet", include_top=False, input_tensor=Input(shape=(224, 224, 3)))
+# construct the head of the model that will be placed on top of the base model
+headModel = baseModel.output
+headModel = AveragePooling2D(pool_size=(7, 7))(headModel)
+headModel = Flatten(name="flatten")(headModel)
+headModel = Dense(512, activation="relu")(headModel)
+headModel = Dropout(0.5)(headModel)
+headModel = Dense(len(lb.classes_), activation="softmax")(headModel)
+# place the head FC model on top of the base model (this will become
+# the actual model we will train)
+model = Model(inputs=baseModel.input, outputs=headModel)
+# loop over all layers in the base model and freeze them so they will
+# *not* be updated during the training process
+for layer in baseModel.layers:
+	layer.trainable = False
+
+
+
+
+
 
