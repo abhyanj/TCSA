@@ -30,19 +30,28 @@ arg.add_argument("-l", "--label-bin", required = True, help = "path to libel bin
 arg.add_argument("-i", "--input", required = True, help = "path to video")
 arg.add_argument("-p", "--plot", type=str, default="plot.png", help="path to output loss/accuracy plot")
 args = vars(arg.parse_args())
+
+LABELS = set(["tcsa"])
+
 #now actually getting the data. We only have TCSA so no need to label or check anything
 imagePaths = list(paths.list_images(args["dataset"]))
 data = []
-#not needed: labels = []
+labels = []
 
 for i in imagePaths:
-	# load the image, convert it to RGB channel ordering, and resize it to be a fixed 224x224 pixels, ignoring aspect ratio
+
+	label = imagePath.split(os.path.sep)[-2]
+
+	if label not in LABELS:
+		continue
+	# load the image, convert it to RGB channel ordering, and resize
+	# it to be a fixed 224x224 pixels, ignoring aspect ratio
 	image = cv2.imread(i)
 	image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 	image = cv2.resize(image, (224, 224))
 	# update the data and labels lists, respectively
 	data.append(image)
-	#don't think we need: labels.append(label)
+	labels.append(label)
 
 #gotta check the one-hot encoding stuff
 
@@ -75,24 +84,35 @@ model = Model(inputs=baseModel.input, outputs=headModel)
 for layer in baseModel.layers:
 	layer.trainable = False
 
-# compile our model (this needs to be done after our setting our
-# layers to being non-trainable)
-print("[INFO] compiling model...")
 opt = SGD(lr=1e-4, momentum=0.9, decay=1e-4 / args["epochs"])
-model.compile(loss="categorical_crossentropy", optimizer=opt,
-	metrics=["accuracy"])
-# train the head of the network for a few epochs (all other layers
-# are frozen) -- this will allow the new FC layers to start to become
-# initialized with actual "learned" values versus pure random
-print("[INFO] training head...")
+model.compile(loss = "categorial_crossentropy", optimizer=opt, metrics=["accuracy"])
+
 H = model.fit(
 	x=trainAug.flow(trainX, trainY, batch_size=32),
-	steps_per_epoch=len(trainX) // 32,
+	steps_per_epoch=len(trainX),
 	validation_data=valAug.flow(testX, testY),
-	validation_steps=len(testX) // 32,
+	validation_steps=len(testX),
 	epochs=args["epochs"])
 
+predictions = model.predict(x=testX.astype("float32"), batch_size=32)
+print(classification_report(testY.argmax(axis=1),
+	predictions.argmax(axis=1), target_names=lb.classes_))
+# plot the training loss and accuracy
+N = args["epochs"]
+plt.style.use("ggplot")
+plt.figure()
+plt.plot(np.arange(0, N), H.history["loss"], label="train_loss")
+plt.plot(np.arange(0, N), H.history["val_loss"], label="val_loss")
+plt.plot(np.arange(0, N), H.history["accuracy"], label="train_acc")
+plt.plot(np.arange(0, N), H.history["val_accuracy"], label="val_acc")
+plt.title("Training Loss and Accuracy on Dataset")
+plt.xlabel("Epoch #")
+plt.ylabel("Loss/Accuracy")
+plt.legend(loc="lower left")
+plt.savefig(args["plot"])
 
-
-
-
+print("[INFO] serializing network...")
+model.save(args["model"], save_format="h5")
+f = open(args["label_bin"], "wb")
+f.write(pickle.dumps(lb))
+f.close()
