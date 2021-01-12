@@ -37,7 +37,7 @@ ap.add_argument("-p", "--plot", type=str, default="plot.png",
 
 args = vars(ap.parse_args())
 
-LABELS = set(["tcsa"])
+LABELS = set(["tcsaImages"])
 
 #now actually getting the data. We only have TCSA so no need to label or check anything
 imagePaths = list(paths.list_images(args["dataset"]))
@@ -61,9 +61,16 @@ for i in imagePaths:
 
 #gotta check the one-hot encoding stuff
 
+# convert the data and labels to NumPy arrays
 data = np.array(data)
-(trainX, testX, trainY, testY) = train_test_split(data, test_size=0.25, random_state=42)
-
+labels = np.array(labels)
+# perform one-hot encoding on the labels
+lb = LabelBinarizer()
+labels = lb.fit_transform(labels)
+# partition the data into training and testing splits using 75% of
+# the data for training and the remaining 25% for testing
+(trainX, testX, trainY, testY) = train_test_split(data, labels,
+	test_size=0.25, stratify=labels, random_state=42)
 #train data object initialization
 trainAug = ImageDataGenerator(rotation_range=30, zoom_range=0.15, width_shift_range=0.2, height_shift_range=0.2, shear_range=0.15, horizontal_flip=True, fill_mode="nearest")
 valAug = ImageDataGenerator()
@@ -101,8 +108,7 @@ H = model.fit(
 	epochs=args["epochs"])
 
 predictions = model.predict(x=testX.astype("float32"), batch_size=32)
-print(classification_report(testY.argmax(axis=1),
-	predictions.argmax(axis=1), target_names=lb.classes_))
+#print(classification_report(testY.argmax(axis=1), predictions.argmax(axis=1), target_names=lb.classes_)) # commented out
 # plot the training loss and accuracy
 N = args["epochs"]
 plt.style.use("ggplot")
