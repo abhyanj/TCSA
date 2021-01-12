@@ -98,7 +98,8 @@ for layer in baseModel.layers:
 	layer.trainable = False
 
 opt = SGD(lr=1e-4, momentum=0.9, decay=1e-4 / args["epochs"])
-model.compile(loss = "categorial_crossentropy", optimizer=opt, metrics=["accuracy"])
+model.compile(loss="categorical_crossentropy", optimizer=opt,
+	metrics=["accuracy"])
 
 H = model.fit(
 	x=trainAug.flow(trainX, trainY, batch_size=32),
