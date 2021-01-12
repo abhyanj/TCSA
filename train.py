@@ -23,13 +23,19 @@ import os # file stuff
 # all the stuff we need
 
 #from VideoProcessing.py (might be easier to keep within this file but let's see)
-arg = argparse.ArgumentParser()
-arg.add_argument("-d", "--dataset", required = True, help = "path to our TCSA data")
-arg.add_argument("-m", "--model", required = True, help = "path to trained model")
-arg.add_argument("-l", "--label-bin", required = True, help = "path to libel binarizer")
-arg.add_argument("-i", "--input", required = True, help = "path to video")
-arg.add_argument("-p", "--plot", type=str, default="plot.png", help="path to output loss/accuracy plot")
-args = vars(arg.parse_args())
+ap = argparse.ArgumentParser()
+ap.add_argument("-d", "--dataset", required=True,
+	help="path to input dataset")
+ap.add_argument("-m", "--model", required=True,
+	help="path to output serialized model")
+ap.add_argument("-l", "--label-bin", required=True,
+	help="path to output label binarizer")
+ap.add_argument("-e", "--epochs", type=int, default=25,
+	help="# of epochs to train our network for")
+ap.add_argument("-p", "--plot", type=str, default="plot.png",
+	help="path to output loss/accuracy plot")
+
+args = vars(ap.parse_args())
 
 LABELS = set(["tcsa"])
 
@@ -40,7 +46,7 @@ labels = []
 
 for i in imagePaths:
 
-	label = imagePath.split(os.path.sep)[-2]
+	label = i.split(os.path.sep)[-2]
 
 	if label not in LABELS:
 		continue
@@ -56,7 +62,7 @@ for i in imagePaths:
 #gotta check the one-hot encoding stuff
 
 data = np.array(data)
-(train_x, test_x, train_y, test_y) = train_test_split(data, test_size=0.20, random_state=42)
+(trainX, testX, trainY, testY) = train_test_split(data, test_size=0.25, random_state=42)
 
 #train data object initialization
 trainAug = ImageDataGenerator(rotation_range=30, zoom_range=0.15, width_shift_range=0.2, height_shift_range=0.2, shear_range=0.15, horizontal_flip=True, fill_mode="nearest")
