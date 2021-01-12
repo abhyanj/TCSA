@@ -36,8 +36,7 @@ data = []
 #not needed: labels = []
 
 for i in imagePaths:
-	# load the image, convert it to RGB channel ordering, and resize
-	# it to be a fixed 224x224 pixels, ignoring aspect ratio
+	# load the image, convert it to RGB channel ordering, and resize it to be a fixed 224x224 pixels, ignoring aspect ratio
 	image = cv2.imread(i)
 	image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 	image = cv2.resize(image, (224, 224))
@@ -76,6 +75,22 @@ model = Model(inputs=baseModel.input, outputs=headModel)
 for layer in baseModel.layers:
 	layer.trainable = False
 
+# compile our model (this needs to be done after our setting our
+# layers to being non-trainable)
+print("[INFO] compiling model...")
+opt = SGD(lr=1e-4, momentum=0.9, decay=1e-4 / args["epochs"])
+model.compile(loss="categorical_crossentropy", optimizer=opt,
+	metrics=["accuracy"])
+# train the head of the network for a few epochs (all other layers
+# are frozen) -- this will allow the new FC layers to start to become
+# initialized with actual "learned" values versus pure random
+print("[INFO] training head...")
+H = model.fit(
+	x=trainAug.flow(trainX, trainY, batch_size=32),
+	steps_per_epoch=len(trainX) // 32,
+	validation_data=valAug.flow(testX, testY),
+	validation_steps=len(testX) // 32,
+	epochs=args["epochs"])
 
 
 
