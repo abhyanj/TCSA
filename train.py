@@ -98,7 +98,7 @@ for layer in baseModel.layers:
 	layer.trainable = False
 
 opt = SGD(lr=1e-4, momentum=0.9, decay=1e-4 / args["epochs"])
-model.compile(loss = "categorial_crossentropy", optimizer=opt, metrics=["accuracy"])
+model.compile(loss = "categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
 
 H = model.fit(
 	x=trainAug.flow(trainX, trainY, batch_size=32),
@@ -114,9 +114,9 @@ N = args["epochs"]
 plt.style.use("ggplot")
 plt.figure()
 plt.plot(np.arange(0, N), H.history["loss"], label="train_loss")
-plt.plot(np.arange(0, N), H.history["val_loss"], label="val_loss")
+#plt.plot(np.arange(0, N), H.history["val_loss"], label="val_loss")
 plt.plot(np.arange(0, N), H.history["accuracy"], label="train_acc")
-plt.plot(np.arange(0, N), H.history["val_accuracy"], label="val_acc")
+#plt.plot(np.arange(0, N), H.history["val_accuracy"], label="val_acc")
 plt.title("Training Loss and Accuracy on Dataset")
 plt.xlabel("Epoch #")
 plt.ylabel("Loss/Accuracy")
